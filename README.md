@@ -1,6 +1,6 @@
 # WeatherBench
 
-Strumento sperimentale per il confronto empirico tra **JPA/Hibernate su MySQL** e **MongoDB** nell'ingestione e aggregazione di serie temporali meteorologiche. Sviluppato come artefatto sperimentale della mia tesi triennale in Ingegneria Informatica: misura throughput, latenze (p50/p95/p99), consumo di heap JVM e attività del Garbage Collector a parita' di carico di lavoro.
+Strumento sperimentale per il confronto empirico tra **JPA/Hibernate su MySQL** e **MongoDB** nell'ingestione e aggregazione di serie temporali meteorologiche. Sviluppato come artefatto sperimentale della mia tesi triennale in Ingegneria Informatica: misura throughput, latenze (p50/p95/p99), consumo di heap JVM e attività del Garbage Collector a parità di carico di lavoro.
 
 ## Architettura
 
