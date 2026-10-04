@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="logger.xml" />
+
+    <logger name="org.mongodb.driver" level="WARN" />
+    <!-- SQL_LOG_LEVEL=DEBUG per vedere gli statement e i batch JDBC generati da Hibernate -->
+    <logger name="org.hibernate.SQL" level="${SQL_LOG_LEVEL:-WARN}" />
+    <logger name="org.hibernate.engine.jdbc.batch" level="${SQL_LOG_LEVEL:-WARN}" />
+
+</configuration>

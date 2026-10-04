@@ -1,0 +1,105 @@
+# =====================================================================================
+#  WeatherBench - configurazione unica, ogni endpoint/porta ha un fallback parametrizzato.
+#  Override: variabile d'ambiente (APP_PORT=8081) oppure argomento CLI (--APP_PORT=8081).
+# =====================================================================================
+
+# General properties
+server:
+  port: ${APP_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: ${MAIN_HTTP_THREADS:200}
+
+spring:
+  application:
+    name: weatherbench
+  lifecycle:
+    timeout-per-shutdown-phase: ${TERMINATION_GRACE_PERIOD:30}s
+  jmx:
+    enabled: true
+
+  # ---------------------------------------------------------------- RDBMS (MySQL)
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:weatherbench}?createDatabaseIfNotExist=true&rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: weatherbench-mysql-pool
+      maximum-pool-size: ${MYSQL_POOL_SIZE:10}
+      minimum-idle: ${MYSQL_POOL_MIN_IDLE:2}
+      connection-timeout: 10000
+      register-mbeans: false
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: ${JPA_BATCH_SIZE:500}
+          batch_versioned_data: true
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+        generate_statistics: ${HIBERNATE_STATISTICS:false}
+        query:
+          in_clause_parameter_padding: true
+
+  # ---------------------------------------------------------------- MongoDB
+  # Per un'istanza con autenticazione aggiungere username/password/authentication-database
+  data:
+    mongodb:
+      host: ${MONGO_HOST:localhost}
+      port: ${MONGO_PORT:27017}
+      database: ${MONGO_DB:weatherbench}
+      auto-index-creation: true
+
+# ---------------------------------------------------------------- Actuator / Micrometer
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+    jmx:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# ---------------------------------------------------------------- Parametri sperimentali
+weatherbench:
+  benchmark:
+    # Seed fisso => dataset sintetico identico ad ogni esecuzione (Capitolo 3, replicabilita')
+    seed: ${BENCH_SEED:42}
+    stations: ${BENCH_STATIONS:50}
+    sampling-interval-minutes: ${BENCH_INTERVAL_MINUTES:10}
+    start-instant: ${BENCH_START_INSTANT:2024-01-01T00:00:00Z}
+    # Dimensione del blocco passato a saveBatch(): una latenza campionata per blocco
+    chunk-size: ${BENCH_CHUNK_SIZE:5000}
+    # Ogni N persist(): flush() + clear() del persistence context
+    jpa-flush-interval: ${JPA_BATCH_SIZE:500}
+    # Numero massimo di operazioni per singola execute() di BulkOperations
+    mongo-bulk-size: ${MONGO_BULK_SIZE:1000}
+    # System.gc() prima della misura per partire da un heap stabilizzato
+    gc-before-run: ${BENCH_GC_BEFORE_RUN:true}
+    max-records: 1000000
+    report-history-size: 1000
+    # Una riga CSV per ogni run (intestazione scritta alla creazione del file)
+    results-file: ${BENCH_RESULTS_FILE:logs/benchmark-results.csv}
+
+  open-meteo:
+    base-url: ${OPEN_METEO_URL:https://api.open-meteo.com}
+    connect-timeout: 5s
+    read-timeout: 30s

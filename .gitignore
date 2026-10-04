@@ -1,0 +1,26 @@
+# Build
+target/
+bin/
+
+# IDE
+.classpath
+.project
+.settings/
+.metadata/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Runtime output
+logs/
+*.log
+gc.log
+
+# Local tooling
+empty-settings.xml
+AGENTS.md
+
+# OS
+Thumbs.db
+.DS_Store

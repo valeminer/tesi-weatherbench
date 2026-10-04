@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>it.tesis</groupId>
+	<artifactId>weatherbench</artifactId>
+	<version>1.0</version>
+	<packaging>jar</packaging>
+	<name>WeatherBench</name>
+	<description>Benchmark JPA/Hibernate (MySQL) vs MongoDB su ingestione e aggregazione time-series meteo</description>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.3.13</version>
+		<relativePath />
+	</parent>
+
+	<properties>
+<!-- Required section -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>21</java.version>
+		<maven.compiler.release>21</maven.compiler.release>
+		<springdoc.openapi.version>2.6.0</springdoc.openapi.version>
+		<jacoco.version>0.8.12</jacoco.version>
+		<maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
+<!-- /Required section -->
+<!-- Benchmark JVM Section: sovrascrivibili da CLI, es. -Djvm.xmx=4g -Djmx.port=9011 -->
+		<jvm.xms>1g</jvm.xms>
+		<jvm.xmx>2g</jvm.xmx>
+		<jvm.gc.flags>-XX:+UseG1GC</jvm.gc.flags>
+		<jmx.port>9010</jmx.port>
+		<jvm.benchmark.args>-Xms${jvm.xms} -Xmx${jvm.xmx} ${jvm.gc.flags} -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=target -Xlog:gc*:file=target/gc.log:time,uptime,level,tags:filecount=5,filesize=20m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=${jmx.port} -Dcom.sun.management.jmxremote.rmi.port=${jmx.port} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.local.only=true -Djava.rmi.server.hostname=localhost -Duser.timezone=UTC -Dfile.encoding=UTF-8</jvm.benchmark.args>
+<!-- /Benchmark JVM Section -->
+	</properties>
+
+	<dependencies>
+<!-- Required section -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Bean Validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Actuator + Micrometer (jvm.memory.used, jvm.gc.pause, Timer percentili) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+<!-- /Required section -->
+
+		<!-- RDBMS: JPA / Hibernate 6 + MySQL -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- MongoDB -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- OpenAPI / Swagger UI -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.openapi.version}</version>
+		</dependency>
+
+		<!-- Test -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+<!-- Required section -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${maven-enforcer-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>enforce-banned-dependencies</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireJavaVersion>
+									<version>[21,)</version>
+								</requireJavaVersion>
+								<bannedDependencies>
+									<excludes combine.children="append">
+										<exclude>org.apache.logging.log4j:log4j-core:(,2.17.1)</exclude>
+										<exclude>org.apache.commons:commons-text:(,1.10.0)</exclude>
+									</excludes>
+								</bannedDependencies>
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<release>${java.version}</release>
+					<parameters>true</parameters>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+						<path>
+							<groupId>org.springframework.boot</groupId>
+							<artifactId>spring-boot-configuration-processor</artifactId>
+							<version>${project.parent.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- JVM forkata da spring-boot:run: heap fisso, GC log e JMX locale per VisualVM -->
+					<jvmArguments>${jvm.benchmark.args}</jvmArguments>
+					<environmentVariables>
+						<PLATFORM_LOG_LEVEL>INFO</PLATFORM_LOG_LEVEL>
+					</environmentVariables>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<!-- attached to Maven test phase -->
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+<!-- /Required section -->
+							<excludes>
+								<exclude>it/tesis/weatherbench/conf/**</exclude>
+								<exclude>it/tesis/weatherbench/model/**</exclude>
+								<exclude>it/tesis/weatherbench/exception/**</exclude>
+								<exclude>it/tesis/weatherbench/dto/**</exclude>
+								<exclude>it/tesis/weatherbench/WeatherBenchApplication.class</exclude>
+							</excludes>
+<!-- Required section -->
+							<outputDirectory>target/jacocoreport</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<environmentVariables>
+						<PLATFORM_LOG_LEVEL>INFO</PLATFORM_LOG_LEVEL>
+					</environmentVariables>
+				</configuration>
+			</plugin>
+<!-- /Required section -->
+		</plugins>
+	</build>
+
+	<profiles>
+		<!-- Scenario Capitolo 4: heap vincolato per evidenziare la pressione sul GC -->
+		<profile>
+			<id>heap-constrained</id>
+			<properties>
+				<jvm.xms>512m</jvm.xms>
+				<jvm.xmx>512m</jvm.xmx>
+			</properties>
+		</profile>
+
+		<!-- Scenario Capitolo 4: heap ampio -->
+		<profile>
+			<id>heap-large</id>
+			<properties>
+				<jvm.xms>4g</jvm.xms>
+				<jvm.xmx>4g</jvm.xmx>
+			</properties>
+		</profile>
+
+		<!-- Scenario Capitolo 4: confronto collector (Generational ZGC, JDK 21) -->
+		<profile>
+			<id>zgc</id>
+			<properties>
+				<jvm.gc.flags>-XX:+UseZGC -XX:+ZGenerational</jvm.gc.flags>
+			</properties>
+		</profile>
+	</profiles>
+
+</project>
